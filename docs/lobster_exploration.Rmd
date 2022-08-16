@@ -1,0 +1,144 @@
+---
+title: "Lobster Exploration"
+author: "Andre Dextre"
+date: "2022-08-15"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(tidyr)
+library(janitor)
+library(here)
+library(here)
+```
+
+Read in the data
+
+```{r}
+lobsters <- read_csv(here("data", "Lobster_Abundance_All_Years_20210412.csv"), na = c("-99999", "")) %>%
+  clean_names() %>%
+  uncount(count)
+```
+
+- Create a summary table that finds the total counts (see: n()), and mean carapace lengths of lobsters observed in the dataset by site and year.
+
+- Create a ggplot graph of the number of total lobsters observed (y-axis) by year (x-axis) in the study, grouped (either aesthetically or by faceting) by site
+
+```{r}
+sum_table <- lobsters %>%
+  group_by(site, year) %>%
+  summarize(mean_length = mean(size_mm),
+            count = n())
+
+ggplot(sum_table, aes(x = year,
+                      y = count)) +
+  geom_line(aes(color = site)) 
+```
+
+The legal lobster size (carapace length) in California is 79.76 mm.
+
+Create a subset that only contains lobster data from 2020 (note: this should be from the original data you read in, not the summary table you created above)
+
+Write code (you can decide how to do this - there are a number of ways) to find the counts of lobsters observed at each site (only using site as the grouping factor) that are above and below the legal limit. Hint: You may want to add a new column legal that contains “yes” or “no” based on the size of the observed lobster (see dplyr::case_when() for a really nice way to do this), then use group_by() %>% summarize(n()) or dplyr::count() to get counts by group within variables
+
+Create a stacked column graph that shows the proportion of legal and non-legal lobsters at each site. **Hint: create a stacked column graph with geom_col(), then add the argument position = "fill" to convert from a graph of absolute counts to proportions.
+
+Which two sites had the largest proportion of legal lobsters in 2020? Explore the metadata to come up with a hypothesis about why that might be.
+
+```{r}
+lobsters_2020 <- lobsters %>%
+  filter(year == 2020) %>%
+  mutate(legal = case_when(size_mm  >= 79.76 ~ 'Yes',
+            TRUE ~ 'No')) %>%
+  group_by(site, legal) %>%
+  summarize(counts = n()) %>%
+  relocate(legal, .after = counts)
+
+ggplot(lobsters_2020, aes(x = site,
+                          y = counts,
+                          group = legal)) +
+  geom_col(position = "fill",
+    aes(fill = legal)) +
+  labs(title = "Proportion of Lobsters by CA Legality",
+       x = "Site",
+       y = "Count")
+```
+
+
+## Task 3: Random Lobster Wrangling
+
+### Filter() practice
+
+Create and store a subset that only contains lobsters from sites “IVEE”, “CARP” and “NAPL”. Check your output data frame to ensure that only those three sites exist.
+
+```{r}
+ex_a <- lobsters %>%
+  filter(site %in% c("IVEE", "CARP", "NAPL"))
+```
+
+Create a subset that only contains lobsters observed in August.
+
+```{r}
+ex_b <- lobsters %>%
+  filter(month == 8)
+```
+
+Create a subset with lobsters at Arroyo Quemado (AQUE) OR with a carapace length greater than 70 mm.
+
+```{r}
+ex_c <- lobsters %>%
+  filter(site == "AQUE" | size_mm > 70)
+```
+
+Create a subset that does NOT include observations from Naples Reef (NAPL)
+
+```{r}
+ex_d <- lobsters %>%
+  filter(site != "NAPL")
+```
+
+### group_by() %>% summarize() practice
+
+Find the mean and standard deviation of lobster carapace length, grouped by site.
+
+```{r}
+ex_e <- lobsters %>%
+  group_by(site) %>%
+  summarize(mean_mm = mean(size_mm, na.rm = TRUE),
+            sd_mm = sd(size_mm, na.rm = TRUE))
+```
+
+Find the maximum carapace length by site and month.
+
+```{r}
+ex_f <- lobsters %>%
+  group_by(site, month) %>%
+  summarize(max = max(size_mm, na.rm = TRUE))
+```
+
+### `mutate()` practice
+
+Add a new column that contains lobster carapace length converted to centimeters. Check output. 
+
+```{r}
+ex_g <- lobsters %>%
+  mutate(length_cm = size_mm / 10)
+```
+
+Update the site column to all lowercase. Check output.
+
+```{r}
+ex_h <- lobsters %>%
+  mutate(site = tolower(site))
+```
+
+Convert the area column to a character (not sure why you’d want to do this, but try it anyway). Check output
+
+```{r}
+ex_i <- lobsters %>%
+  mutate(area = as.character(area))
+```
+
+
